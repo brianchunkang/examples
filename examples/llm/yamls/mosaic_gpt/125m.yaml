@@ -1,4 +1,4 @@
-data_local: ./my-copy-c4
+data_local: ./examples/examples/llm/my-copy-c4 #./my-copy-c4
 data_remote: # If blank, files must be present in data_local
 tokenizer_name: gpt2
 max_seq_len: 2048
@@ -10,7 +10,7 @@ run_name: # If left blank, will be read from env var $COMPOSER_RUN_NAME
 # Model
 model:
   name: mosaic_gpt
-  init_device: meta
+  init_device: xla #meta
   tokenizer_name: ${tokenizer_name}
   d_model: 768
   n_heads: 12
@@ -18,7 +18,12 @@ model:
   mlp_ratio: 4
   max_seq_len: ${max_seq_len}
   vocab_size: 50368
-  attn_impl: triton
+  init_std: 0.02
+  attn_pdrop: 0.0
+  resid_pdrop: 0.0
+  emb_pdrop: 0.0
+  #attn_impl: flash
+  attn_impl: torch
 
 # Tokenizer
 tokenizer:
@@ -75,26 +80,23 @@ algorithms:
 
 max_duration: 4800ba # ~ 2.5B tokens
 eval_interval: 500ba
-eval_first: false
 eval_subset_num_batches: -1
-global_train_batch_size: 256
+global_train_batch_size: 8
 
 # System
 seed: ${global_seed}
-device_eval_batch_size: 16
-device_train_microbatch_size: 16
+device_eval_batch_size: 2
+device_train_microbatch_size: 2
 # device_train_microbatch_size: auto
 precision: amp_bf16
 
 # FSDP
-fsdp_config:
-  sharding_strategy: FULL_SHARD
-  mixed_precision: PURE
-  activation_checkpointing: false
-  activation_checkpointing_reentrant: false
-  activation_cpu_offload: false
-  limit_all_gathers: true
-  verbose: false
+#fsdp_config:
+#  sharding_strategy: FULL_SHARD
+#  mixed_precision: DEFAULT
+#  activation_checkpointing: false
+#  activation_cpu_offload: false
+#  verbose: false
 
 # Logging
 progress_bar: false
@@ -106,7 +108,6 @@ callbacks:
     window_size: 10
   lr_monitor: {}
   memory_monitor: {}
-  runtime_estimator: {}
 
 # loggers:
 #   wandb: {}

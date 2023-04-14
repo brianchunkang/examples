@@ -18,7 +18,6 @@ from examples.common.text_data import build_text_dataloader
 from examples.llm.src import (COMPOSER_MODEL_REGISTRY,
                               build_text_denoising_dataloader)
 
-
 def validate_config(cfg):
     """Validates compatible model and dataloader selection."""
     loaders = [cfg.train_loader]
@@ -107,8 +106,8 @@ def main(cfg):
     # using 'cuda' vs. 'cuda:id' is tricky and can lead to common user errors
     # when multiple GPUs are available.
     # Also 'meta' is only valid when using FSDP
-    init_device = cfg.model.get('init_device', 'cpu')
-    assert init_device in ['meta', 'cpu']
+    init_device = cfg.model.get('init_device', 'xla') # TPU adjustment 'cpu')
+    assert init_device in ['meta', 'cpu', 'xla'] #Added TPU support
     if fsdp_config is None and init_device == 'meta':
         warnings.warn(
             "Using `cfg.model.init_device='meta'` is only valid when using FSDP! " +\
@@ -201,6 +200,8 @@ def main(cfg):
         autoresume=cfg.get('autoresume', False),
         python_log_level=cfg.get('python_log_level', None),
         dist_timeout=cfg.dist_timeout,
+        # Add TPU as device
+        device='tpu',
     )
 
     print('Logging config...')

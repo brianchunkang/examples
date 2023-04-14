@@ -30,7 +30,8 @@ from examples.llm.src.models.mosaic_gpt.configuration_mosaic_gpt import \
     MosaicGPTConfig
 from examples.llm.src.models.utils import (MODEL_INIT_REGISTRY,
                                            add_bidirectional_mask_if_missing)
-
+### Changes for support XLA and TPU
+import torch_xla.core.xla_model as xm
 
 class MosaicGPT(PreTrainedModel):
     config_class = MosaicGPTConfig
@@ -38,6 +39,10 @@ class MosaicGPT(PreTrainedModel):
 
     def __init__(self, config: MosaicGPTConfig):
         super().__init__(config)
+        
+        # If config = 'xla' then use TPU
+        if config.init_device == 'xla':
+            config.init_device = xm.xla_device()
 
         self.attn_impl = config.attn_impl
         self.prefix_lm = config.prefix_lm
@@ -462,6 +467,8 @@ class ComposerMosaicGPT(HuggingFaceModel):
                                                    resolve=True)
         hf_config = MosaicGPTConfig.from_dict(resolved_om_model_config)
         model = MosaicGPT(hf_config)
+        ### Add TPU support
+        model = model.to(xm.xla_device())
 
         resolved_om_tokenizer_config = om.to_container(om_tokenizer_config,
                                                        resolve=True)
@@ -500,7 +507,8 @@ class ComposerMosaicGPT(HuggingFaceModel):
 
         self.n_active_params = sum(p.numel() for p in self.parameters())
 
-        loss_fn_config = om_model_config.get('loss_fn', 'fused_crossentropy')
+        #loss_fn_config = om_model_config.get('loss_fn', 'fused_crossentropy')
+        loss_fn_config = om_model_config.get('loss_fn', 'torch_crossentropy') #'fused_crossentropy')
         if loss_fn_config == 'fused_crossentropy':
             try:
                 from flash_attn.losses.cross_entropy import CrossEntropyLoss as FusedCrossEntropyLoss  # type: ignore # isort: skip
